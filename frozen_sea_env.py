@@ -4,14 +4,19 @@
 # ref: https://github.com/openai/gym/blob/master/docs/creating-environments.md
 # ref: https://github.com/alibaba/gym-starcraft
 
+import numpy as np
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 
-class FooEnv(gym.Env):
+
+class FrozenSeaEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, w, h, p, genesis_method, seed):
+        '''
+        genesis_method: {'uniform', 'cluster'}
+        '''
         self.w = w
         self.h = h
         self.p = p
@@ -22,6 +27,17 @@ class FooEnv(gym.Env):
         self.a = None
         self.b = None
         self.feasible = None
+
+    def _genesis(self, w, h, p, method, seed):
+        grid = np.zeros([h,w])
+        p = [pi/sum(p) for pi in p]
+        if method == 'uniform':
+            grid = np.random.choice(len(p),size=(h, w),replace=True,p=p)
+        elif method == 'cluster':
+            raise NotImplementedError
+        else:
+            raise Exception
+        return grid
 
     def step(self, action):
         """
@@ -63,10 +79,30 @@ class FooEnv(gym.Env):
         pass
 
     def render(self, mode='human', close=False):
-        pass
+        for i in range(self.h):
+            print(self.grid[i])
 
     def take_action(self, action):
-        pass
+        # update the loc
+        new_loc, loc_valid = self._get_new_loc(action)
+        if  loc_valid:
+            self.loc = new_loc
+
+        # calculate the reward
+        r = 0
+        if loc_valid:
+            r += 1
+
+        # determine the game status
+        terminal = False
+        if new_loc == self.b:
+            r = 100
+            terminal = True
+        if new_loc.is_bad():
+            r = -10
+            terminal = True
+
+        return new_loc, r, terminal, _
 
     def get_reward(self):
         """ Reward is given for XY. """
@@ -78,7 +114,15 @@ class FooEnv(gym.Env):
             return 0
 
     def action_space(self):
-        pass
+        return [0, 1, 2, 3, 4]
 
     def observation_space(self):
-        pass
+        import itertools
+        h_coord = list(range(self.h))
+        w_coord = list(range(self.w))
+        return list(itertools.product(h_coord,w_coord))
+
+
+if __name__ == '__main__':
+    env = FrozenSeaEnv(30, 20, (80,10,5), 'uniform' ,12345)
+    env.render()
