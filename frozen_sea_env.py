@@ -3,6 +3,8 @@
 # ref: https://stackoverflow.com/questions/45068568/how-to-create-a-new-gym-environment-in-openai
 # ref: https://github.com/openai/gym/blob/master/docs/creating-environments.md
 # ref: https://github.com/alibaba/gym-starcraft
+# ref: https://github.com/openai/gym/blob/master/gym/envs/classic_control/mountain_car.py
+
 
 import numpy as np
 import gym
@@ -23,7 +25,7 @@ class FrozenSeaEnv(gym.Env):
         self.seed = seed
         self.world_status = 0
         self.grid = self._genesis(w, h, p, genesis_method, seed)
-        self.loc = None
+        self.loc = (0, 0)
         self.a = None
         self.b = None
         self.feasible = None
@@ -80,7 +82,15 @@ class FrozenSeaEnv(gym.Env):
 
     def render(self, mode='human', close=False):
         for i in range(self.h):
-            print(self.grid[i])
+            if i == self.loc[0]:
+                temp_row = [str(b) for b in self.grid[i]]
+                #temp_row[self.loc[1]] = str(temp_row[self.loc[1]]) + "*"
+                temp_row[self.loc[1]] = '*'
+                temp_str = " ".join(temp_row)
+                print("["+temp_str+"]")
+            else:
+                print(self.grid[i])
+        print("")
 
     def take_action(self, action):
         # update the loc
@@ -89,32 +99,32 @@ class FrozenSeaEnv(gym.Env):
             self.loc = new_loc
 
         # calculate the reward
-        r = 0
-        if loc_valid:
-            r += 1
+        r = self.get_reward(new_loc)
+        r = -1
 
         # determine the game status
         terminal = False
         if new_loc == self.b:
             r = 100
             terminal = True
-        if new_loc.is_bad():
-            r = -10
+        if self.grid[new_loc[0]][new_loc[1]] == 2:
+            r = -100
             terminal = True
 
-        return new_loc, r, terminal, _
+        return new_loc, r, terminal, None
 
-    def get_reward(self):
-        """ Reward is given for XY. """
-        if self.status == FOOBAR:
-            return 1
-        elif self.status == ABC:
-            return self.somestate ** 2
+    def get_reward(self, new_loc):
+        if new_loc == self.b:
+            # goal !!!
+            return 100
+        elif self.grid[new_loc[0]][new_loc[1]] == 2:
+            return -100
         else:
-            return 0
+            return -1
+
 
     def action_space(self):
-        return [0, 1, 2, 3, 4]
+        return [0, 1, 2, 3, 4] # idle/up/down/left/right
 
     def observation_space(self):
         import itertools
@@ -122,7 +132,46 @@ class FrozenSeaEnv(gym.Env):
         w_coord = list(range(self.w))
         return list(itertools.product(h_coord,w_coord))
 
+    def _get_new_loc(self, action):
+        new_loc = list(self.loc)
+        if action == 0:
+            pass
+        elif action == 1:
+            if new_loc[0] == 0:
+                pass
+            else:
+                new_loc[0] -= 1
+        elif action == 2:
+            if new_loc[0] >= self.h-1:
+                pass
+            else:
+                new_loc[0] += 1
+        elif action == 3:
+            new_loc[1] -= 1 if new_loc[1] > 0 else 0
+        elif action == 4:
+            new_loc[1] += 1 if new_loc[1] < self.h - 1 else 0
+        else:
+            assert False
+
+        if not self._if_position_valid(new_loc):
+            return self.loc, 0
+        else:
+            return tuple(new_loc), 1
+
+    def _if_position_valid(self, new_loc):
+        if self.grid[new_loc[0]][new_loc[1]] == 0:
+            return 1
+        elif self.grid[new_loc[0]][new_loc[1]] == 1:
+            # impassable
+            return 0
+        elif self.grid[new_loc[0]][new_loc[1]] == 2:
+            # die
+            return 1
+
 
 if __name__ == '__main__':
     env = FrozenSeaEnv(30, 20, (80,10,5), 'uniform' ,12345)
     env.render()
+    env.take_action(4);env.render()
+    env.take_action(4);env.render()
+    import pdb; pdb.set_trace()
