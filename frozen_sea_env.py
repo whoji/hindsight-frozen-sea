@@ -11,6 +11,7 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 
+VISION = 0
 
 class FrozenSeaEnv(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -29,6 +30,8 @@ class FrozenSeaEnv(gym.Env):
         self.a = None
         self.b = None
         self.feasible = None
+
+        #self.reset() # it seems other gym env does not this
 
     def _genesis(self, w, h, p, method, seed):
         grid = np.zeros([h,w])
@@ -78,7 +81,22 @@ class FrozenSeaEnv(gym.Env):
         return ob, reward, episode_over, {}
 
     def reset(self):
-        pass
+        while 1:
+            a_r = np.random.choice(self.h)
+            a_c = np.random.choice(self.w)
+            if self.grid[a_r][a_c] == 0:
+                self.a = (a_r, a_c)
+                break
+        while 1:
+            b_r = np.random.choice(self.h)
+            b_c = np.random.choice(self.w)
+            if self.grid[b_r][b_c] == 0 and (a_r, a_c) != (b_r, b_c):
+                self.b = (b_r, b_c)
+                break
+        s0 = [a_r, a_c]
+        if VISION == 1:
+            s0 = s0 + self.get_surround(s0)
+        return s0
 
     def render(self, mode='human', close=False):
         for i in range(self.h):
@@ -111,7 +129,11 @@ class FrozenSeaEnv(gym.Env):
             r = -100
             terminal = True
 
-        return new_loc, r, terminal, None
+        s_new = [new_loc[0], new_loc[1]]
+        if VISION == 1:
+            s_new = s_new + self.get_surround(s_new)
+
+        return s_new, r, terminal, None
 
     def get_reward(self, new_loc):
         if new_loc == self.b:
@@ -168,6 +190,34 @@ class FrozenSeaEnv(gym.Env):
             # die
             return 1
 
+    def get_surround(self, s):
+        ret = []
+        try:
+            ret.append(self.grid[s[0]][s[1]])
+        except:
+            ret.append(-1)
+
+        try:
+            ret.append(self.grid[s[0]-1][s[1]])
+        except:
+            ret.append(-1)
+
+        try:
+            ret.append(self.grid[s[0]+1][s[1]])
+        except:
+            ret.append(-1)
+
+        try:
+            ret.append(self.grid[s[0]][s[1]-1])
+        except:
+            ret.append(-1)
+
+        try:
+            ret.append(self.grid[s[0]][s[1]+1])
+        except:
+            ret.append(-1)
+
+        return ret
 
 if __name__ == '__main__':
     env = FrozenSeaEnv(30, 20, (80,10,5), 'uniform' ,12345)
