@@ -34,6 +34,7 @@ class FrozenSeaEnv(gym.Env):
         #self.reset() # it seems other gym env does not this
 
     def _genesis(self, w, h, p, method, seed):
+        np.random.seed(seed)
         grid = np.zeros([h,w])
         p = [pi/sum(p) for pi in p]
         if method == 'uniform':
@@ -144,7 +145,6 @@ class FrozenSeaEnv(gym.Env):
         else:
             return -1
 
-
     def action_space(self):
         return [0, 1, 2, 3, 4] # idle/up/down/left/right
 
@@ -153,6 +153,15 @@ class FrozenSeaEnv(gym.Env):
         h_coord = list(range(self.h))
         w_coord = list(range(self.w))
         return list(itertools.product(h_coord,w_coord))
+
+    def get_obs_size(self):
+        s_size = 2
+        if VISION == 1:
+            s_size += 4
+        return s_size
+
+    def get_n_actions(self):
+        return len(self.action_space())
 
     def _get_new_loc(self, action):
         new_loc = list(self.loc)
@@ -224,4 +233,4 @@ if __name__ == '__main__':
     env.render()
     env.take_action(4);env.render()
     env.take_action(4);env.render()
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()

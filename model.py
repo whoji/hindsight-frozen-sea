@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-HID_SIZE
+HID_SIZE = 32
 
 class PolicyNet(nn.Module):
     def __init__(self, obs_size, action_size):
