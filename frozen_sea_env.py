@@ -43,6 +43,7 @@ class FrozenSeaEnv(gym.Env):
             raise NotImplementedError
         else:
             raise Exception
+        np.random.seed(None)
         return grid
 
     def step(self, action):
